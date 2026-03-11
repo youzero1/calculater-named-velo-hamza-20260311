@@ -1,0 +1,454 @@
+'-')) {
+      const op = this.consume();
+      const right = this.term();
+      if (op === '+') {
+        left = left + right;
+      } else {
+        left = left - right;
+      }
+    }
+    return left;
+  }
+
+  private term(): number {
+    let left = this.unary();
+    while (this.pos < this.tokens.length && ('*/%'.includes(this.peek()))) {
+      const op = this.consume();
+      const right = this.unary();
+      if (op === '*') {
+        left = left * right;
+      } else if (op === '/') {
+        if (right === 0) {
+          throw new Error('Division by zero');
+        }
+        left = left / right;
+      } else {
+        if (right === 0) {
+          throw new Error('Division by zero');
+        }
+        left = left % right;
+      }
+    }
+    return left;
+  }
+
+  private unary(): number {
+    if (this.peek() === '-') {
+      this.consume();
+      return -this.unary();
+    }
+    if (this.peek() === '+') {
+      this.consume();
+      return this.unary();
+    }
+    return this.factor();
+  }
+
+  private factor(): number {
+    const token = this.peek();
+
+    if (token === '(') {
+      this.consume(); // consume '('
+      const result = this.expression();
+      if (this.peek() !== ')') {
+        throw new Error('Missing closing parenthesis');
+      }
+      this.consume(); // consume ')'
+      return result;
+    }
+
+    // Must be a number
+    const num = this.consume();
+    const value = parseFloat(num);
+    if (isNaN(value)) {
+      throw new Error(`Invalid number: ${num}`);
+    }
+    return value;
+  }
+
+  private peek(): string {
+    if (this.pos >= this.tokens.length) {
+      throw new Error('Unexpected end of expression');
+    }
+    return this.tokens[this.pos];
+  }
+
+  private consume(): string {
+    const token = this.peek();
+    this.pos++;
+    return token;
+  }
+}
+
+export function evaluate(expression: string): number {
+  const trimmed = expression.trim();
+  if (!trimmed) {
+    throw new Error('Empty expression');
+  }
+
+  // Security: only allow valid characters
+  if (!/^[\d\s+\-*/.()%]+$/.test(trimmed)) {
+    throw new Error('Invalid characters in expression');
+  }
+
+  const tokens = tokenize(trimmed);
+  if (tokens.length === 0) {
+    throw new Error('Empty expression');
+  }
+
+  const parser = new Parser(tokens);
+  const result = parser.parse();
+
+  if (!isFinite(result)) {
+    throw new Error('Result is not finite');
+  }
+
+  return result;
+}
+
+export function formatResult(value: number): string {
+  // Avoid floating point display issues
+  if (Number.isInteger(value)) {
+    return value.toString();
+  }
+
+  // Limit to 10 decimal places and strip trailing zeros
+  const formatted = parseFloat(value.toFixed(10)).toString();
+
+  // If the result is very long, use exponential notation
+  if (formatted.length > 15) {
+    return value.toExponential(6);
+  }
+
+  return formatted;
+}
+</file>
+
+<file path="velo/src/components/Display.module.css">
+.display {
+  width: 100%;
+  background: var(--bg-card);
+  border-radius: var(--radius) var(--radius) 0 0;
+  padding: 24px 20px 20px;
+  min-height: 120px;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  align-items: flex-end;
+  overflow: hidden;
+}
+
+.expression {
+  font-size: 1rem;
+  color: var(--text-secondary);
+  min-height: 1.4em;
+  word-break: break-all;
+  text-align: right;
+  width: 100%;
+  margin-bottom: 8px;
+  line-height: 1.4;
+}
+
+.result {
+  font-size: 2.8rem;
+  font-weight: 300;
+  color: var(--text-primary);
+  word-break: break-all;
+  text-align: right;
+  width: 100%;
+  line-height: 1.2;
+  letter-spacing: -0.5px;
+}
+
+.error {
+  color: #ff453a;
+}
+</file>
+
+<file path="velo/src/components/Display.tsx">
+import React from 'react';
+import styles from './Display.module.css';
+
+interface DisplayProps {
+  expression: string;
+  result: string;
+  error?: boolean;
+}
+
+const Display: React.FC<DisplayProps> = ({ expression, result, error }) => {
+  return (
+    <div className={styles.display}>
+      <div className={styles.expression}>{expression || '\u00A0'}</div>
+      <div className={`${styles.result} ${error ? styles.error : ''}`}>
+        {result || '0'}
+      </div>
+    </div>
+  );
+};
+
+export default Display;
+</file>
+
+<file path="velo/src/components/Button.module.css">
+.button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.4rem;
+  font-weight: 400;
+  border-radius: var(--radius-btn);
+  background: var(--bg-button);
+  color: var(--text-primary);
+  transition: background 0.15s ease, transform 0.1s ease;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  aspect-ratio: 1;
+  width: 100%;
+}
+
+.button:hover {
+  background: var(--bg-button-hover);
+}
+
+.button:active {
+  transform: scale(0.95);
+}
+
+.operator {
+  background: var(--bg-operator);
+  color: var(--text-operator);
+  font-weight: 500;
+}
+
+.operator:hover {
+  background: var(--bg-operator-hover);
+}
+
+.special {
+  background: var(--bg-special);
+  font-weight: 500;
+}
+
+.special:hover {
+  background: var(--bg-special-hover);
+}
+
+.equals {
+  background: var(--bg-equals);
+  color: var(--text-operator);
+  font-weight: 600;
+}
+
+.equals:hover {
+  background: var(--bg-operator-hover);
+}
+
+.wide {
+  aspect-ratio: auto;
+  grid-column: span 2;
+}
+</file>
+
+<file path="velo/src/components/Button.tsx">
+import React from 'react';
+import styles from './Button.module.css';
+
+export type ButtonVariant = 'default' | 'operator' | 'special' | 'equals';
+
+interface ButtonProps {
+  label: string;
+  onClick: () => void;
+  variant?: ButtonVariant;
+  wide?: boolean;
+  ariaLabel?: string;
+}
+
+const Button: React.FC<ButtonProps> = ({
+  label,
+  onClick,
+  variant = 'default',
+  wide = false,
+  ariaLabel,
+}) => {
+  const classNames = [
+    styles.button,
+    variant !== 'default' ? styles[variant] : '',
+    wide ? styles.wide : '',
+  ]
+    .filter(Boolean)
+    .join(' ');
+
+  return (
+    <button
+      className={classNames}
+      onClick={onClick}
+      aria-label={ariaLabel || label}
+      type="button"
+    >
+      {label}
+    </button>
+  );
+};
+
+export default Button;
+</file>
+
+<file path="velo/src/components/Calculator.module.css">
+.calculator {
+  width: 100%;
+  max-width: 360px;
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  overflow: hidden;
+  background: var(--bg-secondary);
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+  padding: 16px;
+}
+
+.history {
+  max-height: 200px;
+  overflow-y: auto;
+  padding: 12px 16px;
+  border-top: 1px solid var(--border);
+}
+
+.historyTitle {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-bottom: 8px;
+}
+
+.historyItem {
+  display: flex;
+  justify-content: space-between;
+  padding: 6px 0;
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  border-bottom: 1px solid var(--border);
+  cursor: pointer;
+  transition: color 0.15s ease;
+}
+
+.historyItem:hover {
+  color: var(--text-primary);
+}
+
+.historyExpression {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  margin-right: 12px;
+}
+
+.historyResult {
+  color: var(--accent);
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.noHistory {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  text-align: center;
+  padding: 8px 0;
+}
+</file>
+
+<file path="velo/src/components/Calculator.tsx">
+'use client';
+
+import React, { useState, useCallback, useEffect } from 'react';
+import Display from './Display';
+import Button from './Button';
+import type { ButtonVariant } from './Button';
+import { evaluate, formatResult } from '@/lib/evaluate';
+import type { CalculationRecord, ApiResponse } from '@/types';
+import styles from './Calculator.module.css';
+
+interface ButtonConfig {
+  label: string;
+  variant: ButtonVariant;
+  wide?: boolean;
+  action: string;
+}
+
+const BUTTONS: ButtonConfig[] = [
+  { label: 'AC', variant: 'special', action: 'clear' },
+  { label: '±', variant: 'special', action: 'negate' },
+  { label: '%', variant: 'special', action: 'percent' },
+  { label: '÷', variant: 'operator', action: '/' },
+  { label: '7', variant: 'default', action: '7' },
+  { label: '8', variant: 'default', action: '8' },
+  { label: '9', variant: 'default', action: '9' },
+  { label: '×', variant: 'operator', action: '*' },
+  { label: '4', variant: 'default', action: '4' },
+  { label: '5', variant: 'default', action: '5' },
+  { label: '6', variant: 'default', action: '6' },
+  { label: '−', variant: 'operator', action: '-' },
+  { label: '1', variant: 'default', action: '1' },
+  { label: '2', variant: 'default', action: '2' },
+  { label: '3', variant: 'default', action: '3' },
+  { label: '+', variant: 'operator', action: '+' },
+  { label: '0', variant: 'default', action: '0', wide: true },
+  { label: '.', variant: 'default', action: '.' },
+  { label: '=', variant: 'equals', action: 'equals' },
+];
+
+const Calculator: React.FC = () => {
+  const [expression, setExpression] = useState('');
+  const [display, setDisplay] = useState('0');
+  const [hasError, setHasError] = useState(false);
+  const [justEvaluated, setJustEvaluated] = useState(false);
+  const [history, setHistory] = useState<CalculationRecord[]>([]);
+
+  // Fetch history on mount
+  useEffect(() => {
+    fetchHistory();
+  }, []);
+
+  const fetchHistory = async () => {
+    try {
+      const res = await fetch('/api/calculations');
+      const json: ApiResponse<CalculationRecord[]> = await res.json();
+      if (json.data) {
+        setHistory(json.data);
+      }
+    } catch {
+      // silently fail - history is non-critical
+    }
+  };
+
+  const saveCalculation = async (expr: string, result: string) => {
+    try {
+      await fetch('/api/calculations', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ expression: expr, result }),
+      });
+      fetchHistory();
+    } catch {
+      // silently fail
+    }
+  };
+
+  const handleAction = useCallback(
+    (action: string) => {
+      setHasError(false);
+
+      switch (action) {
+        case 'clear':
+          setExpression('');
+          setDisplay('0');
+          setJustEvaluated(false);
+          break;
+
+        case 'negate': {
+          if (display
