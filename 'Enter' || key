@@ -1,0 +1,3 @@
+'=') {
+        handleAction('equals');
+      } else if (key
