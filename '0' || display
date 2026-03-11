@@ -1,0 +1,109 @@
+'Error') return;
+          if (display.startsWith('-')) {
+            setDisplay(display.slice(1));
+          } else {
+            setDisplay('-' + display);
+          }
+          break;
+        }
+
+        case 'percent': {
+          if (display === 'Error') return;
+          try {
+            const val = parseFloat(display) / 100;
+            setDisplay(formatResult(val));
+            setJustEvaluated(true);
+          } catch {
+            setDisplay('Error');
+            setHasError(true);
+          }
+          break;
+        }
+
+        case 'equals': {
+          const fullExpr = expression + display;
+          if (!fullExpr.trim()) return;
+          try {
+            const result = evaluate(fullExpr);
+            const resultStr = formatResult(result);
+            setExpression(fullExpr + ' =');
+            setDisplay(resultStr);
+            setJustEvaluated(true);
+            saveCalculation(fullExpr, resultStr);
+          } catch {
+            setDisplay('Error');
+            setHasError(true);
+            setJustEvaluated(true);
+          }
+          break;
+        }
+
+        case '+':
+        case '-':
+        case '*':
+        case '/': {
+          if (hasError) return;
+          if (justEvaluated) {
+            // Continue with the result
+            setExpression(display + ' ' + action + ' ');
+            setDisplay('0');
+            setJustEvaluated(false);
+          } else {
+            setExpression(expression + display + ' ' + action + ' ');
+            setDisplay('0');
+          }
+          break;
+        }
+
+        case '.': {
+          if (justEvaluated) {
+            setExpression('');
+            setDisplay('0.');
+            setJustEvaluated(false);
+            return;
+          }
+          if (!display.includes('.')) {
+            setDisplay(display + '.');
+          }
+          break;
+        }
+
+        default: {
+          // Digit input
+          if (justEvaluated) {
+            setExpression('');
+            setDisplay(action);
+            setJustEvaluated(false);
+            return;
+          }
+          if (display === '0') {
+            setDisplay(action);
+          } else {
+            setDisplay(display + action);
+          }
+          break;
+        }
+      }
+    },
+    [expression, display, hasError, justEvaluated]
+  );
+
+  // Keyboard support
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const key = e.key;
+
+      if (key >= '0' && key <= '9') {
+        handleAction(key);
+      } else if (key === '.') {
+        handleAction('.');
+      } else if (key === '+') {
+        handleAction('+');
+      } else if (key === '-') {
+        handleAction('-');
+      } else if (key === '*') {
+        handleAction('*');
+      } else if (key === '/') {
+        e.preventDefault();
+        handleAction('/');
+      } else if (key
