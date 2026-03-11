@@ -1,0 +1,73 @@
+.btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-btn);
+  font-size: 1.3rem;
+  font-weight: 400;
+  height: 68px;
+  transition: background 0.12s ease, transform 0.08s ease, opacity 0.12s ease;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.btn:active {
+  transform: scale(0.93);
+}
+
+.number {
+  background: var(--bg-button);
+  color: var(--text-primary);
+}
+
+.number:hover {
+  background: var(--bg-button-hover);
+}
+
+.operator {
+  background: var(--bg-operator);
+  color: #ffffff;
+  font-weight: 500;
+}
+
+.operator:hover {
+  background: var(--bg-operator-hover);
+}
+
+.special {
+  background: var(--bg-special);
+  color: #ffffff;
+  font-size: 1.1rem;
+  font-weight: 500;
+}
+
+.special:hover {
+  background: var(--bg-special-hover);
+}
+
+.equals {
+  background: var(--bg-operator);
+  color: #ffffff;
+  font-size: 1.5rem;
+  font-weight: 500;
+}
+
+.equals:hover {
+  background: var(--bg-operator-hover);
+}
+
+.wide {
+  grid-column: span 2;
+}
+
+.zero {
+  background: var(--bg-button);
+  color: var(--text-primary);
+  grid-column: span 2;
+  justify-content: flex-start;
+  padding-left: 26px;
+}
+
+.zero:hover {
+  background: var(--bg-button-hover);
+}
