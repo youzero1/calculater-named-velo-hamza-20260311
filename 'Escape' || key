@@ -1,0 +1,162 @@
+'c' || key === 'C') {
+        handleAction('clear');
+      } else if (key === '%') {
+        handleAction('percent');
+      } else if (key === 'Backspace') {
+        if (display.length > 1) {
+          setDisplay(display.slice(0, -1));
+        } else {
+          setDisplay('0');
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [handleAction, display]);
+
+  const handleHistoryClick = (record: CalculationRecord) => {
+    setDisplay(record.result);
+    setExpression(record.expression + ' =');
+    setJustEvaluated(true);
+    setHasError(false);
+  };
+
+  return (
+    <div className={styles.calculator}>
+      <Display expression={expression} result={display} error={hasError} />
+      <div className={styles.grid}>
+        {BUTTONS.map((btn) => (
+          <Button
+            key={btn.label}
+            label={btn.label}
+            variant={btn.variant}
+            wide={btn.wide}
+            onClick={() => handleAction(btn.action)}
+          />
+        ))}
+      </div>
+      <div className={styles.history}>
+        <div className={styles.historyTitle}>History</div>
+        {history.length === 0 ? (
+          <div className={styles.noHistory}>No calculations yet</div>
+        ) : (
+          history.slice(0, 10).map((record) => (
+            <div
+              key={record.id}
+              className={styles.historyItem}
+              onClick={() => handleHistoryClick(record)}
+              role="button"
+              tabIndex={0}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') handleHistoryClick(record);
+              }}
+            >
+              <span className={styles.historyExpression}>
+                {record.expression}
+              </span>
+              <span className={styles.historyResult}>= {record.result}</span>
+            </div>
+          ))
+        )}
+      </div>
+    </div>
+  );
+};
+
+export default Calculator;
+</file>
+
+<file path="velo/src/app/api/calculations/route.ts">
+import 'reflect-metadata';
+import { NextRequest, NextResponse } from 'next/server';
+import { getDataSource } from '@/lib/database';
+import { Calculation } from '@/entities/Calculation';
+
+export async function GET() {
+  try {
+    const ds = await getDataSource();
+    const repo = ds.getRepository(Calculation);
+    const calculations = await repo.find({
+      order: { createdAt: 'DESC' },
+      take: 50,
+    });
+    return NextResponse.json({ data: calculations });
+  } catch (error) {
+    console.error('GET /api/calculations error:', error);
+    return NextResponse.json(
+      { error: 'Failed to retrieve calculations' },
+      { status: 500 }
+    );
+  }
+}
+
+export async function POST(request: NextRequest) {
+  try {
+    const body = await request.json();
+    const { expression, result } = body as { expression?: string; result?: string };
+
+    if (!expression || result === undefined) {
+      return NextResponse.json(
+        { error: 'expression and result are required' },
+        { status: 400 }
+      );
+    }
+
+    const ds = await getDataSource();
+    const repo = ds.getRepository(Calculation);
+
+    const calculation = repo.create({
+      expression: String(expression),
+      result: String(result),
+    });
+
+    const saved = await repo.save(calculation);
+    return NextResponse.json({ data: saved }, { status: 201 });
+  } catch (error) {
+    console.error('POST /api/calculations error:', error);
+    return NextResponse.json(
+      { error: 'Failed to save calculation' },
+      { status: 500 }
+    );
+  }
+}
+</file>
+
+<file path="velo/src/types/index.ts">
+export interface CalculationRecord {
+  id: number;
+  expression: string;
+  result: string;
+  createdAt: string;
+}
+
+export interface ApiResponse<T> {
+  data?: T;
+  error?: string;
+}
+</file>
+
+<file path="velo/src/app/layout.tsx">
+import type { Metadata } from 'next';
+import './globals.css';
+
+export const metadata: Metadata = {
+  title: process.env.NEXT_PUBLIC_APP_NAME || 'Velo',
+  description: 'A modern calculator web app',
+};
+
+export default function RootLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  return (
+    <html lang="en">
+      <body>{children}</body>
+    </html>
+  );
+}
+</file>
+
+<file path="velo/src/app
